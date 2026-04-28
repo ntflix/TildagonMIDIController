@@ -56,7 +56,7 @@ class ESPNOWMIDIComms:
         try:
             # Serialize the MIDI event to raw frame (11 + sysex_len bytes)
             raw_frame = midi_event.serialize()
-            print(f"Sending MIDI event {raw_frame} to {self.bridge_mac.hex()}")
+            # print(f"Sending MIDI event {raw_frame} to {self.bridge_mac.hex()}")
             await self.comms.send_async(
                 self.bridge_mac, ESPNOWMessageTypes.DATA, raw_frame
             )

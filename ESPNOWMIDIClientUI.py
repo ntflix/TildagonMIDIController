@@ -6,7 +6,6 @@ import time
 from app_components import clear_background
 from events.input import BUTTON_TYPES, ButtonDownEvent, ButtonUpEvent
 
-from .Drawing import Drawing
 from .Focusable import Focusable
 from .ESPNOWMIDIComms import ESPNOWMIDIComms
 from .MIDIEvent import MIDIEvent
@@ -33,13 +32,11 @@ class ESPNOWMIDIClientUI(Focusable):
 
     def __init__(self, midi_comms: ESPNOWMIDIComms, octave: int = 4):
         self.midi_comms = midi_comms
-        self.drawing = Drawing()
         self.current_octave = octave
         self.current_velocity = 100
         self.current_channel = 0
         self.last_sent_event = None
         self.last_sent_time = 0
-        self.held_buttons = set()
 
     def _base_note_for_octave(self, octave: int) -> int:
         return 12 * (octave + 1)
@@ -70,27 +67,15 @@ class ESPNOWMIDIClientUI(Focusable):
         return None
 
     def handle_button_down(self, event):
-        print(f"Button down event: {event}")
         button_name = self._button_name(event.button)
-        print("Resolved button down:", button_name)
         if button_name not in self.BUTTON_NOTE_NAMES:
             return None
-        if button_name in self.held_buttons:
-            return None
-
-        self.held_buttons.add(button_name)
         return self._build_midi_event(button_name, note_on=True)
 
     def handle_button_up(self, event):
-        print(f"Button up event: {event}")
         button_name = self._button_name(event.button)
-        print("Resolved button up:", button_name)
         if button_name not in self.BUTTON_NOTE_NAMES:
             return None
-
-        if button_name in self.held_buttons:
-            self.held_buttons.remove(button_name)
-
         return self._build_midi_event(button_name, note_on=False)
 
     def _build_midi_event(self, button_name: str, note_on: bool) -> MIDIEvent | None:
@@ -116,49 +101,24 @@ class ESPNOWMIDIClientUI(Focusable):
         )
         self.last_sent_time = time.ticks_ms()
 
-        print(
-            f"Built MIDI event for {button_name}: "
-            f"{'NOTE ON' if note_on else 'NOTE OFF'} {midi_note}"
-        )
+        # print(
+        #     f"Built MIDI event for {button_name}: "
+        #     f"{'NOTE ON' if note_on else 'NOTE OFF'} {midi_note}"
+        # )
         return midi_event
 
     def draw(self, ctx) -> None:
         clear_background(ctx)
         ctx.font = "sans-serif"
-        ctx.font_size = 20
         ctx.text_align = ctx.CENTER
         ctx.text_baseline = ctx.MIDDLE
-        self._draw_main(ctx)
 
-    def _draw_main(self, ctx) -> None:
         ctx.font_size = 14
-        ctx.rgb(1, 1, 1).move_to(0, -96).text("MIDI Client")
+        ctx.rgb(1, 1, 1).move_to(0, -16).text("MIDI Client")
 
         bridge_mac = self.midi_comms.bridge_mac
         bridge_connected = bridge_mac is not None
         ctx.font_size = 10
-        ctx.rgb(0, 0.8, 0).move_to(0, -78).text(
+        ctx.rgb(0, 0.8, 0).move_to(0, 4).text(
             f"Bridge: {bridge_mac.hex()}" if bridge_connected else "Bridge: not set"
         )
-
-        ctx.font_size = 12
-        ctx.rgb(1, 1, 1).move_to(0, -52).text(f"Octave: {self.current_octave}")
-        ctx.rgb(1, 1, 1).move_to(0, -34).text(f"Channel: {self.current_channel}")
-        ctx.rgb(1, 1, 1).move_to(0, -16).text(f"Velocity: {self.current_velocity}")
-
-        ctx.font_size = 10
-        ctx.rgb(0.9, 0.9, 0.9).move_to(0, 10).text("UP=A  RIGHT=B  CONFIRM=C")
-        ctx.rgb(0.9, 0.9, 0.9).move_to(0, 24).text("DOWN=D  LEFT=E  CANCEL=F")
-        ctx.rgb(0.8, 0.8, 0.8).move_to(0, 42).text(
-            "Press = NOTE ON, release = NOTE OFF"
-        )
-
-        held = " ".join(sorted(self.held_buttons)) if self.held_buttons else "none"
-        ctx.font_size = 9
-        ctx.rgb(0.8, 0.8, 0.8).move_to(0, 62).text(f"Held: {held}")
-
-        if self.last_sent_event:
-            elapsed = time.ticks_ms() - self.last_sent_time
-            if elapsed < 1500:
-                ctx.font_size = 11
-                ctx.rgb(0, 0.9, 0).move_to(0, 84).text(self.last_sent_event)

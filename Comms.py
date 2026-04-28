@@ -38,11 +38,13 @@ class Comms:
         """Send a message to a peer asynchronously."""
         message = MAGIC + bytes([message_type]) + message
 
-        print(f"Sending message {message} to {addr.hex()} async")
-        if self.get_size_of_message(message) > 250:
-            raise ValueError(
-                f"Oops! Message size {self.get_size_of_message(message)} exceeds maximum allowed size of 250 bytes."
-            )
+        # if self.get_size_of_message(message) > 250:
+        #     raise ValueError(
+        #         f"Oops! Message size {self.get_size_of_message(message)} exceeds maximum allowed size of 250 bytes."
+        #     )
+
+        # Don't bother checking for speed
+
         await self.e.asend(addr, message)
 
     def send_sync(
@@ -54,11 +56,11 @@ class Comms:
         """Send a message to a peer synchronously."""
         message = MAGIC + bytes([message_type]) + message
 
-        print(f"Sending message {message} to {addr.hex()} sync")
-        if self.get_size_of_message(message) > 250:
-            raise ValueError(
-                f"Oops! Message size {self.get_size_of_message(message)} exceeds maximum allowed size of 250 bytes."
-            )
+        # if self.get_size_of_message(message) > 250:
+        #     raise ValueError(
+        #         f"Oops! Message size {self.get_size_of_message(message)} exceeds maximum allowed size of 250 bytes."
+        #     )
+
         self.e.send(addr, message)
 
     async def receive(self, recv_async: bool = True) -> tuple[bytes, bytes] | None:
@@ -117,7 +119,7 @@ class Comms:
         print(f"Joining room: {room}")
 
         self.e.add_peer(room.host_mac)
-        await asyncio.sleep_ms(250)
+        await asyncio.sleep_ms(0)
         # Send a JOIN message to the host
         await self.send_async(room.host_mac, ESPNOWMessageTypes.JOIN, bytes([room.id]))
         print(f"Sent JOIN message to {room.host_mac.hex()}")
