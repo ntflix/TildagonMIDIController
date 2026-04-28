@@ -1,0 +1,6 @@
+{
+  "name": "MIDI",
+  "path": "apps.midi.ESPNOWMIDIClientApp",
+  "callable": "ESPNOWMIDIClient",
+  "category": "Music"
+}
