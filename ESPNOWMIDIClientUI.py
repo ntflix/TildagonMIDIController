@@ -13,12 +13,12 @@ from .MIDIEvent import MIDIEvent
 
 class ESPNOWMIDIClientUI(Focusable):
     NOTE_OFFSETS = {
+        "A": -3,
+        "B": -1,
         "C": 0,
         "D": 2,
         "E": 4,
         "F": 5,
-        "A": -3,
-        "B": -1,
     }
 
     BUTTON_NOTE_NAMES = {
@@ -30,16 +30,17 @@ class ESPNOWMIDIClientUI(Focusable):
         "CANCEL": "F",
     }
 
-    def __init__(self, midi_comms: ESPNOWMIDIComms, octave: int = 4):
+    def __init__(self, midi_comms: ESPNOWMIDIComms, channel: int, octave: int):
         self.midi_comms = midi_comms
+        self.current_channel = channel
         self.current_octave = octave
         self.current_velocity = 100
-        self.current_channel = 0
         self.last_sent_event = None
         self.last_sent_time = 0
+        self.held_buttons = set()
 
     def _base_note_for_octave(self, octave: int) -> int:
-        return 12 * (octave + 1)
+        return 12 * (octave + 2)
 
     def _midi_note_for_button(self, button_name: str):
         note_name = self.BUTTON_NOTE_NAMES.get(button_name)
@@ -70,12 +71,16 @@ class ESPNOWMIDIClientUI(Focusable):
         button_name = self._button_name(event.button)
         if button_name not in self.BUTTON_NOTE_NAMES:
             return None
+        if button_name in self.held_buttons:
+            return None
+        self.held_buttons.add(button_name)
         return self._build_midi_event(button_name, note_on=True)
 
     def handle_button_up(self, event):
         button_name = self._button_name(event.button)
         if button_name not in self.BUTTON_NOTE_NAMES:
             return None
+        self.held_buttons.discard(button_name)
         return self._build_midi_event(button_name, note_on=False)
 
     def _build_midi_event(self, button_name: str, note_on: bool) -> MIDIEvent | None:
@@ -113,12 +118,19 @@ class ESPNOWMIDIClientUI(Focusable):
         ctx.text_align = ctx.CENTER
         ctx.text_baseline = ctx.MIDDLE
 
-        ctx.font_size = 14
-        ctx.rgb(1, 1, 1).move_to(0, -16).text("MIDI Client")
+        ctx.font_size = 30
+        ctx.rgb(1, 1, 1).move_to(0, -52).text("MIDI Client")
 
         bridge_mac = self.midi_comms.bridge_mac
         bridge_connected = bridge_mac is not None
-        ctx.font_size = 10
-        ctx.rgb(0, 0.8, 0).move_to(0, 4).text(
-            f"Bridge: {bridge_mac.hex()}" if bridge_connected else "Bridge: not set"
+        ctx.font_size = 20
+        if bridge_connected:
+            ctx.rgb(0, 0.5, 0).move_to(0, -24).text(f"Connected: {bridge_mac.hex()}")
+        else:
+            ctx.rgb(0.95, 0.1, 0.2).move_to(0, -24).text("Not connected to bridge")
+        ctx.rgb(0, 0.8, 0).move_to(0, 0).text(
+            f"MIDI Channel: {self.current_channel + 1}"
         )
+        ctx.rgb(0, 0.8, 0).move_to(0, 24).text(f"Octave: {self.current_octave}")
+        ctx.rgb(0.9, 0.2, 0.9).move_to(0, 48).text("Move to pitch")
+        ctx.rgb(0.9, 0.2, 0.9).move_to(0, 64).text("bend and modulate!")
